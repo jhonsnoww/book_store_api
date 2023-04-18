@@ -31,4 +31,4 @@ class Book(models.Model):
     pdf = models.FileField(upload_to='pdfs/')
 
     def __str__(self):
-        return self.title
+        return f'{self.title} by {", ".join(str(author) for author in self.authors.all())}'

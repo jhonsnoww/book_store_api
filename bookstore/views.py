@@ -1,6 +1,8 @@
 import os
 from django.conf import settings
 from .permissions import IsAdminOrReadOnly
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 
 from .models import Book
@@ -22,10 +24,11 @@ class BookPagination(PageNumberPagination):
 
 
 class AuthorList(generics.ListCreateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
     parser_classes = [MultiPartParser, FileUploadParser]
-    permission_classes = [IsAdminOrReadOnly]
 
     def perform_create(self, serializer):
         photo = self.request.data.get('photo')
@@ -53,14 +56,14 @@ class AuthorList(generics.ListCreateAPIView):
                 for chunk in photo.chunks():
                     f.write(chunk)
 
-            # Update the photo field in the serializer with the saved path
             serializer.validated_data['photo'] = filename
 
-        # Save the author object
         serializer.save()
 
 
 class AuthorDetail(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Author.objects.all()
     serializer_class = AuthorDetailSerializer
 
@@ -73,17 +76,17 @@ class AuthorDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class CategoryList(generics.ListCreateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    # apply the custom permission here
-    permission_classes = [IsAdminOrReadOnly]
 
 
 class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Category.objects.all()
     serializer_class = CategoryDetailSerializer
-    # apply the custom permission here
-    permission_classes = [IsAdminOrReadOnly]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -94,11 +97,11 @@ class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class BookList(generics.ListCreateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     pagination_class = BookPagination
-    permission_classes = [IsAdminOrReadOnly] # apply the custom permission here
-
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -142,6 +145,8 @@ class BookList(generics.ListCreateAPIView):
 
 
 class BookDetail(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     lookup_field = 'pk'
@@ -163,6 +168,7 @@ class BookDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class BookDownloadView(generics.RetrieveAPIView):
+    permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Book.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
