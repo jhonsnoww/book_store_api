@@ -3,7 +3,7 @@ from django.db import models
 
 class Category(models.Model):
     name = models.CharField(max_length=250)
-    eng_name = models.CharField(max_length=250, default=name)
+    eng_name = models.CharField(max_length=250)
     description = models.CharField(max_length=400, null=True)
 
     def __str__(self):
@@ -29,6 +29,11 @@ class Book(models.Model):
     view_count = models.PositiveIntegerField(default=0)
     create_date = models.DateTimeField(auto_now_add=True)
     pdf = models.FileField(upload_to='pdfs/')
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['title'])
+        ]
 
     def __str__(self):
         return f'{self.title} by {", ".join(str(author) for author in self.authors.all())}'

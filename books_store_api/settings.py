@@ -8,7 +8,7 @@ SECRET_KEY = 'django-insecure-b)!^!@tb7cr#pxe3p5y-h9gm2iodg4yk0mjuuk**uj&^*l4)h_
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['10.0.2.2', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.auth',
@@ -19,8 +19,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'django.contrib.sites',
     'rest_framework.authtoken',
+    'django_filters',
 
     'bookstore',
+
     # ..
     'allauth',
     'allauth.account',
@@ -85,7 +87,9 @@ REST_FRAMEWORK = {
 
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
+
     ],
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 
 }
 

@@ -6,7 +6,7 @@ urlpatterns = [
     path('authors/<int:pk>', AuthorDetail.as_view()),
     path('categories', CategoryList.as_view()),
     path('categories/<int:pk>', CategoryDetail.as_view()),
-    path('books/', BookList.as_view()),
+    path('books', BookList.as_view()),
     path('books/<int:pk>', BookDetail.as_view()),
     path('books/<int:pk>/download',
          BookDownloadView.as_view(), name='book-download'),

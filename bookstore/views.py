@@ -3,6 +3,7 @@ from django.conf import settings
 from .permissions import IsAdminOrReadOnly
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 from .models import Book
@@ -10,7 +11,7 @@ from .serializers import BookSerializer
 from rest_framework.response import Response
 
 from rest_framework.pagination import PageNumberPagination
-from rest_framework import generics, status
+from rest_framework import generics, status, filters
 from .models import Author, Category, Book
 from .serializers import AuthorSerializer, CategorySerializer, AuthorDetailSerializer, CategoryDetailSerializer
 from rest_framework.parsers import FileUploadParser, MultiPartParser
@@ -29,6 +30,9 @@ class AuthorList(generics.ListCreateAPIView):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
     parser_classes = [MultiPartParser, FileUploadParser]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_fields = ['name']
+    search_fields = ['name']
 
     def perform_create(self, serializer):
         photo = self.request.data.get('photo')
@@ -80,6 +84,9 @@ class CategoryList(generics.ListCreateAPIView):
     permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_fields = ['name']
+    search_fields = ['^name']
 
 
 class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -102,14 +109,22 @@ class BookList(generics.ListCreateAPIView):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     pagination_class = BookPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_fields = ['title']
+    search_fields = ['^title']
 
     def list(self, request, *args, **kwargs):
+        print('title :', request.query_params)
+
+        if request.query_params != None:
+            return super().list(request, *args, **kwargs)
+
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         books = serializer.data
         for book in books:
-            authors = book.pop('author_names')
-            categories = book.pop('category_names')
+            authors = book.pop('authors')
+            categories = book.pop('categories')
             book['authors'] = authors
             book['categories'] = categories
         return Response(books)

@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from .models import User
+from bookstore.serializers import BookSerializer
 
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    favorite_books = serializers.SerializerMethodField()
+    favorite_books = BookSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
@@ -15,8 +16,8 @@ class UserSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
-    def get_favorite_books(self, obj):
-        try:
-            return [favbook for favbook in obj.favorite_books.all()]
-        except:
-            return None
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        favorite_books = data.pop('favorite_books')
+        data['favorite_books'] = [book for book in favorite_books]
+        return data

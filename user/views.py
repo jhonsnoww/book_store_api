@@ -8,10 +8,15 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserSerializer
 from django.contrib.auth import login
+from rest_framework.generics import GenericAPIView
 from bookstore.serializers import BookSerializer
 from bookstore.models import Book
+from .permissions import IsUserOrReadOnly
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 
 import requests
+from django.contrib.auth.views import LoginView
 
 
 class FacebookLoginView(generics.CreateAPIView):
@@ -49,7 +54,7 @@ class FacebookLoginView(generics.CreateAPIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-class LoginView(APIView):
+class LoginView(APIView, LoginView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
@@ -67,7 +72,6 @@ class LoginView(APIView):
 
 
 class UserCreateView(generics.CreateAPIView):
-    permission_classes = (permissions.IsAdminUser,)
     authentication_classes = []
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -82,14 +86,9 @@ class UserCreateView(generics.CreateAPIView):
 
 class UserDetailView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user_id = self.request.user.id
-
-        queryset = User.objects.filter(
-            id=user_id).prefetch_related('favorite_books')
-        return queryset
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsUserOrReadOnly]
+    queryset = User.objects.all()
 
 
 class FavoriteBookView(generics.GenericAPIView):
