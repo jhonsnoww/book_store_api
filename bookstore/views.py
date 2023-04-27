@@ -1,5 +1,3 @@
-import os
-from django.conf import settings
 from .permissions import IsAdminOrReadOnly
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -14,7 +12,6 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework import generics, status, filters
 from .models import Author, Category, Book
 from .serializers import AuthorSerializer, CategorySerializer, AuthorDetailSerializer, CategoryDetailSerializer
-from rest_framework.parsers import FileUploadParser, MultiPartParser
 
 
 class BookPagination(PageNumberPagination):
@@ -29,40 +26,10 @@ class AuthorList(generics.ListCreateAPIView):
     permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
-    parser_classes = [MultiPartParser, FileUploadParser]
+    pagination_class = BookPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filter_fields = ['name']
     search_fields = ['name']
-
-    def perform_create(self, serializer):
-        photo = self.request.data.get('photo')
-        if photo:
-            filename = os.path.join('photos', photo.name)
-            filepath = 'media/{}'.format(photo.name)
-            with open(filepath, 'wb') as f:
-                for chunk in photo.chunks():
-                    f.write(chunk)
-            serializer.validated_data['photo'] = filename
-
-        # Save the author object
-        serializer.save()
-
-    def perform_update(self, serializer):
-        # Get the uploaded photo from the request
-        photo = self.request.data.get('photo')
-        if photo:
-            # Construct the path to save the file
-            filename = os.path.join('photos', photo.name)
-            filepath = os.path.join(settings.BASE_DIR, filename)
-
-            # Save the file to the desired path
-            with open(filepath, 'wb') as f:
-                for chunk in photo.chunks():
-                    f.write(chunk)
-
-            serializer.validated_data['photo'] = filename
-
-        serializer.save()
 
 
 class AuthorDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -75,7 +42,7 @@ class AuthorDetail(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         author_serializer = self.get_serializer(instance)
         return Response({
-            'author': author_serializer.data
+            'authors': author_serializer.data
         })
 
 
@@ -84,6 +51,7 @@ class CategoryList(generics.ListCreateAPIView):
     permission_classes = [IsAdminOrReadOnly, IsAuthenticated]
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    pagination_class = BookPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filter_fields = ['name']
     search_fields = ['^name']
@@ -99,7 +67,7 @@ class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         category_serializer = self.get_serializer(instance)
         return Response({
-            'category': category_serializer.data
+            'categories': category_serializer.data
         })
 
 
@@ -114,7 +82,6 @@ class BookList(generics.ListCreateAPIView):
     search_fields = ['^title']
 
     def list(self, request, *args, **kwargs):
-        print('title :', request.query_params)
 
         if request.query_params != None:
             return super().list(request, *args, **kwargs)
@@ -127,7 +94,7 @@ class BookList(generics.ListCreateAPIView):
             categories = book.pop('categories')
             book['authors'] = authors
             book['categories'] = categories
-        return Response(books)
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -136,19 +103,10 @@ class BookList(generics.ListCreateAPIView):
             serializer.save()
             book_id = serializer.data.get('id')
             book = Book.objects.get(id=book_id)
-            author_ids = request.data.getlist('authors')
-            category_ids = request.data.getlist('categories')
+            author_ids = request.data.get('authors')
+            category_ids = request.data.get('categories')
             authors = Author.objects.filter(id__in=author_ids)
             categories = Category.objects.filter(id__in=category_ids)
-
-            file = request.data.get('pdf')
-
-            filepath = f'pdfs/{book.title}.pdf'
-
-            with open(filepath, 'wb') as f:
-                f.write(file.read())
-
-            book.pdf = filepath
             book.authors.set(authors)
             book.categories.set(categories)
 
@@ -175,9 +133,6 @@ class BookDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        # delete the associated pdf file
-        if instance.pdf and os.path.exists(instance.pdf.path):
-            os.remove(instance.pdf.path)
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 

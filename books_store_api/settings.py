@@ -55,7 +55,7 @@ ROOT_URLCONF = 'books_store_api.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -170,11 +170,35 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': ['books_store_api/templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/'
 AUTH_USER_MODEL = 'user.user'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'mmdevnotes@gmail.com'  # your Gmail email address
+EMAIL_HOST_PASSWORD = 'ssvtbmccssjtaror'  # your Gmail password
 
 FACEBOOK_APP_SECRET = '54a515d7a0c66b32ea93663015c07e51'
 FACEBOOK_APP_ID = '35db852826296de1cbf3fe44df6df9c4'

@@ -4,7 +4,6 @@ from django.db import models
 class Category(models.Model):
     name = models.CharField(max_length=250)
     eng_name = models.CharField(max_length=250)
-    description = models.CharField(max_length=400, null=True)
 
     def __str__(self):
         return self.name
@@ -14,7 +13,7 @@ class Author(models.Model):
     name = models.CharField(max_length=250)
     eng_name = models.CharField(max_length=250, default=name)
     description = models.CharField(max_length=400, null=True)
-    photo = models.ImageField(upload_to='authors/', null=True, blank=True)
+    coverUrl = models.CharField(max_length=250)
 
     def __str__(self):
         return self.name
@@ -28,7 +27,8 @@ class Book(models.Model):
     download_count = models.PositiveIntegerField(default=0)
     view_count = models.PositiveIntegerField(default=0)
     create_date = models.DateTimeField(auto_now_add=True)
-    pdf = models.FileField(upload_to='pdfs/')
+    pdfFileUrl = models.CharField(max_length=250)
+    coverUrl = models.CharField(max_length=250)
 
     class Meta:
         indexes = [

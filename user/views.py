@@ -2,17 +2,24 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.status import HTTP_201_CREATED
 from .models import User
+from bookstore.models import Book
+
 from .serializers import UserSerializer
+from bookstore.serializers import BookSerializer
+
 
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import UserSerializer
 from django.contrib.auth import login
-from rest_framework.generics import GenericAPIView
-from bookstore.serializers import BookSerializer
-from bookstore.models import Book
 from .permissions import IsUserOrReadOnly
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.views import TokenRefreshView
+from datetime import datetime, timedelta
+
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 
 import requests
@@ -59,16 +66,37 @@ class LoginView(APIView, LoginView):
     authentication_classes = []
 
     def post(self, request):
+
         email = request.data.get('email')
         password = request.data.get('password')
-        user = User.objects.filter(email=email).first()
 
-        if user is not None and user.check_password(password):
-            token = RefreshToken.for_user(user=user)
-            login(request, user=user)
-            return Response({'accessToken': str(token.access_token), 'refreshToken': str(token), 'email': str(user), })
-        else:
-            return Response({'error': 'Invalid email or password.'}, status=404)
+        if email is not None:
+            user = User.objects.filter(email=email).first()
+            day = datetime.now() + timedelta(days=1)
+
+            if user is not None and user.check_password(password):
+                token = RefreshToken.for_user(user=user)
+
+                login(request, user=user)
+                return Response({
+                    'expired': day,
+                    'accessToken': str(token.access_token),
+                    'refreshToken': str(token)})
+            else:
+                return Response({'error': 'Invalid email or password.'}, status=404)
+
+        return Response({'error': "Can't be empty email or password."}, status=404)
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        refresh = RefreshToken(request.data.get('refresh'))
+        return Response({
+            'accessToken': str(refresh.access_token),
+            'refreshToken': str(refresh),
+        })
 
 
 class UserCreateView(generics.CreateAPIView):
@@ -89,6 +117,57 @@ class UserDetailView(generics.RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsUserOrReadOnly]
     queryset = User.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        token = request.headers.get('Authorization', None)
+        accessToken = token.split(' ')[1]
+
+        try:
+            decoded_token = AccessToken(accessToken)
+            decoded_token.verify()
+            user = User.objects.get(id=decoded_token['user_id'])
+
+            id = user.id
+            email = user.email
+            is_verified = user.is_verified
+            favorite_books_queryset = user.favorite_books.all()
+            favorite_books = BookSerializer(
+                favorite_books_queryset, many=True).data
+            return Response({'id': id, 'email': str(email), 'isVerified': is_verified, 'favoriteBooks': favorite_books})
+
+        except User.DoesNotExist:
+            return Response({'msg': 'user dose not exit.'})
+        except Exception as e:
+            return Response({'msg': str(e)})
+
+
+class VerifyEmailView(generics.GenericAPIView):
+    def post(self, request):
+        email = request.data.get('email')
+        verification_code = request.data.get('code')
+
+        try:
+            user = User.objects.get(email=email, code=verification_code)
+
+            if user.is_verified:
+                return Response({'message': 'Your account is verified.'})
+
+            elif user is not None:
+                user.is_verified = True
+                user.save()
+                token = RefreshToken.for_user(user)
+                return Response({
+                    'accessToken': str(token.access_token),
+                    'refreshToken': str(token)})
+            else:
+                Response({
+                    'success': False,
+                    'message': 'User Not Found.'
+                })
+
+        except User.DoesNotExist:
+            return Response({'success': False,
+                             'message': 'User Not Found.'})
 
 
 class FavoriteBookView(generics.GenericAPIView):
@@ -118,5 +197,4 @@ class FavoriteBookView(generics.GenericAPIView):
         user.favorite_books.remove(book)
         user.save()
 
-        # serializer = self.get_serializer(user)
         return Response({'success': True})

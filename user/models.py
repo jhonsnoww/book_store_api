@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.hashers import make_password
 from bookstore.models import Book
+import random
 
 
 class UserManager(BaseUserManager):
@@ -26,6 +27,8 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True)
+    is_verified = models.BooleanField(default=False)
+    code = models.CharField(max_length=6, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -35,14 +38,11 @@ class User(AbstractBaseUser):
 
     objects = UserManager()
 
-    # def __str__(self):
-    #     return self.email
-
-    # def has_perm(self, perm, obj=None):
-    #     return True
-
-    # def has_module_perms(self, app_label):
-    #     return True
+    def generate_verification_code(self):
+        verification_code = ''.join(random.choices('0123456789', k=6))
+        self.code = verification_code
+        self.save()
+        return verification_code
 
 
 class UserActivity(models.Model):

@@ -21,7 +21,7 @@ class BookSerializer(serializers.ModelSerializer):
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
-        fields = ('id', 'name', 'description', 'photo')
+        fields = ('id', 'name', 'description', 'coverUrl')
 
 
 class AuthorDetailSerializer(serializers.ModelSerializer):
@@ -29,13 +29,13 @@ class AuthorDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Author
-        fields = ('id', 'name', 'description', 'photo', 'books')
+        fields = ('id', 'name', 'description', 'coverUrl', 'books')
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ('id', 'name', 'description')
+        fields = ('id', 'name', )
 
 
 class CategoryDetailSerializer(serializers.ModelSerializer):
@@ -43,4 +43,4 @@ class CategoryDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'description', 'books')
+        fields = ('id', 'name', 'books')
